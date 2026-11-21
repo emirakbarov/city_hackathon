@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,8 @@ import {
 } from "@/lib/pause";
 import { Button } from "@/components/ui/button";
 import { PAvatar } from "@/components/pause/Avatar";
-import { ScrollRecommendation } from "@/components/pause/ScrollRecommendation";
+import { ScrollRecommendation, type ScrollContextInfo } from "@/components/pause/ScrollRecommendation";
+import { startPendingScroll } from "@/lib/personalStore";
 
 export const Route = createFileRoute("/_authenticated/intercept")({
   // ?demo=bus|gym|walk|library|over swaps the live GPS trace for a preset (hackathon demo).
@@ -39,6 +40,8 @@ function Intercept() {
   const [mood, setMood] = useState(3); // "Okay" if they skip the mood question
   // TODO: save on the session row once `sessions` has a minutes column (ask Lovable; don't hand-edit migrations).
   const [scrollMinutes, setScrollMinutes] = useState<number | null>(null);
+  const scrollInfo = useRef<ScrollContextInfo | null>(null);
+  const onContext = useCallback((info: ScrollContextInfo) => { scrollInfo.current = info; }, []);
   const showDemo = demo !== undefined || import.meta.env.DEV;
   const started = useRef(false);
 
@@ -57,7 +60,17 @@ function Intercept() {
 
   async function exit(outcome: "redirected" | "continued") {
     if (sessionId) await supabase.from("sessions").update({ outcome }).eq("id", sessionId);
-    if (outcome === "continued") window.location.href = SHORTCUT_URL;
+    if (outcome === "continued") {
+      // remember the plan so /back (Shortcut "When Instagram is closed") can learn how it went
+      const info = scrollInfo.current;
+      if (info && !demo) {
+        startPendingScroll({
+          startedAt: Date.now(), recommendedMinutes: info.recommended, chosenMinutes: scrollMinutes ?? info.recommended,
+          lat: info.lat, lon: info.lon, placeKind: info.placeKind, mood,
+        });
+      }
+      window.location.href = SHORTCUT_URL;
+    }
     else navigate({ to: "/" });
   }
 
@@ -99,7 +112,7 @@ function Intercept() {
         <ScrollRecommendation
           mood={mood} demo={demo} showDemo={showDemo}
           onDemoChange={(d) => navigate({ to: "/intercept", search: { ...(app ? { app } : {}), ...(d ? { demo: d } : {}) }, replace: true })}
-          minutes={scrollMinutes} onMinutes={setScrollMinutes} onNext={() => setStep(4)}
+          minutes={scrollMinutes} onMinutes={setScrollMinutes} onNext={() => setStep(4)} onContext={onContext}
         />
       )}
       {step >= 4 && <FriendsNow sessionId={sessionId} />}

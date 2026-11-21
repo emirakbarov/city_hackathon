@@ -9,6 +9,8 @@ import type { PlaceType, ScrollContext, TraceSample } from "@/lib/scrollModel";
  * TODO: let the user set dailyTargetMinutes on the profile/setup screen.
  */
 export type ScrollSettings = {
+  /** The aim the user wrote when they started, e.g. "do well in my exams". */
+  goal?: string | undefined;
   dailyTargetMinutes: number;
   /** ISO date of the next exam, or null. */
   examDate: string | null;

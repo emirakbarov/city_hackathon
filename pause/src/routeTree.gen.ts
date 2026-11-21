@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedBackRouteImport } from './routes/_authenticated/back'
 import { Route as AuthenticatedFriendsRouteImport } from './routes/_authenticated/friends'
 import { Route as AuthenticatedInterceptRouteImport } from './routes/_authenticated/intercept'
+import { Route as AuthenticatedPlanRouteImport } from './routes/_authenticated/plan'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
 import { Route as InviteUsernameRouteImport } from './routes/invite.$username'
@@ -32,6 +34,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBackRoute = AuthenticatedBackRouteImport.update({
+  id: '/back',
+  path: '/back',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFriendsRoute = AuthenticatedFriendsRouteImport.update({
   id: '/friends',
   path: '/friends',
@@ -40,6 +47,11 @@ const AuthenticatedFriendsRoute = AuthenticatedFriendsRouteImport.update({
 const AuthenticatedInterceptRoute = AuthenticatedInterceptRouteImport.update({
   id: '/intercept',
   path: '/intercept',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPlanRoute = AuthenticatedPlanRouteImport.update({
+  id: '/plan',
+  path: '/plan',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
@@ -61,16 +73,20 @@ const InviteUsernameRoute = InviteUsernameRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/back': typeof AuthenticatedBackRoute
   '/friends': typeof AuthenticatedFriendsRoute
   '/intercept': typeof AuthenticatedInterceptRoute
+  '/plan': typeof AuthenticatedPlanRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/setup': typeof AuthenticatedSetupRoute
   '/invite/$username': typeof InviteUsernameRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/back': typeof AuthenticatedBackRoute
   '/friends': typeof AuthenticatedFriendsRoute
   '/intercept': typeof AuthenticatedInterceptRoute
+  '/plan': typeof AuthenticatedPlanRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/setup': typeof AuthenticatedSetupRoute
   '/invite/$username': typeof InviteUsernameRoute
@@ -80,8 +96,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/back': typeof AuthenticatedBackRoute
   '/_authenticated/friends': typeof AuthenticatedFriendsRoute
   '/_authenticated/intercept': typeof AuthenticatedInterceptRoute
+  '/_authenticated/plan': typeof AuthenticatedPlanRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/setup': typeof AuthenticatedSetupRoute
   '/invite/$username': typeof InviteUsernameRoute
@@ -92,16 +110,20 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/back'
     | '/friends'
     | '/intercept'
+    | '/plan'
     | '/profile'
     | '/setup'
     | '/invite/$username'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/back'
     | '/friends'
     | '/intercept'
+    | '/plan'
     | '/profile'
     | '/setup'
     | '/invite/$username'
@@ -110,8 +132,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/back'
     | '/_authenticated/friends'
     | '/_authenticated/intercept'
+    | '/_authenticated/plan'
     | '/_authenticated/profile'
     | '/_authenticated/setup'
     | '/invite/$username'
@@ -147,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/back': {
+      id: '/_authenticated/back'
+      path: '/back'
+      fullPath: '/back'
+      preLoaderRoute: typeof AuthenticatedBackRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/friends': {
       id: '/_authenticated/friends'
       path: '/friends'
@@ -159,6 +190,13 @@ declare module '@tanstack/react-router' {
       path: '/intercept'
       fullPath: '/intercept'
       preLoaderRoute: typeof AuthenticatedInterceptRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/plan': {
+      id: '/_authenticated/plan'
+      path: '/plan'
+      fullPath: '/plan'
+      preLoaderRoute: typeof AuthenticatedPlanRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/profile': {
@@ -186,16 +224,20 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedBackRoute: typeof AuthenticatedBackRoute
   AuthenticatedFriendsRoute: typeof AuthenticatedFriendsRoute
   AuthenticatedInterceptRoute: typeof AuthenticatedInterceptRoute
+  AuthenticatedPlanRoute: typeof AuthenticatedPlanRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedBackRoute: AuthenticatedBackRoute,
   AuthenticatedFriendsRoute: AuthenticatedFriendsRoute,
   AuthenticatedInterceptRoute: AuthenticatedInterceptRoute,
+  AuthenticatedPlanRoute: AuthenticatedPlanRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSetupRoute: AuthenticatedSetupRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,

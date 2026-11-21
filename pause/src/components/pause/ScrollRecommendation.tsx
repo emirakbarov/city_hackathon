@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import modelUrl from "@/lib/scroll-model.json?url";
 import placesUrl from "@/lib/places-london.json?url";
 import { matchPlace, type PlaceIndex } from "@/lib/places";
+import { personalise, placeKindAt, type PlaceKind } from "@/lib/personalModel";
+import { loadAim, loadExams, loadPersonalState, logEvent } from "@/lib/personalStore";
 import { useMe } from "@/lib/me";
 import { recommendScrollMinutes, type ContextClass, type ScrollModel } from "@/lib/scrollModel";
 import { DEMO_SCENARIOS, buildScrollContext, demoScenario, loadScrollSettings, minutesScrolledToday } from "@/lib/scrollContext";
@@ -43,8 +45,11 @@ async function loadPlaces(): Promise<PlaceIndex | null> {
 
 const PLACE_LABEL: Record<string, string> = { study: "uni / library", home: "home", food: "café / pub", park: "park", gym: "gym" };
 
+/** What the intercept needs to remember when the user heads off to scroll. */
+export type ScrollContextInfo = { recommended: number; placeKind: PlaceKind; lat?: number | undefined; lon?: number | undefined };
+
 export function ScrollRecommendation({
-  mood, demo, showDemo, onDemoChange, minutes, onMinutes, onNext,
+  mood, demo, showDemo, onDemoChange, minutes, onMinutes, onNext, onContext,
 }: {
   mood: number;
   demo: string | undefined;
@@ -53,6 +58,7 @@ export function ScrollRecommendation({
   minutes: number | null;
   onMinutes: (m: number) => void;
   onNext: () => void;
+  onContext?: (info: ScrollContextInfo) => void;
 }) {
   const me = useMe();
   const scenario = demoScenario(demo);
@@ -67,11 +73,36 @@ export function ScrollRecommendation({
   const { data: model, isError } = useQuery({ queryKey: ["scroll-model"], queryFn: loadModel, staleTime: Infinity });
   const { data: scrolled } = useQuery({ queryKey: ["scrolled-today", me.id], queryFn: () => minutesScrolledToday(me.id) });
 
+  // Personal model: learned on this phone (habits, frequent places, overrun habits) + aim + exams.
+  const personalState = useMemo(() => loadPersonalState(), []);
+  const learnedKind = live.last ? placeKindAt(personalState, live.last.lat, live.last.lon) : "unknown";
+  const placeKind: PlaceKind = place.type !== "unknown" ? place.type : learnedKind;
+
   const rec = useMemo(() => {
     if (!model) return null;
-    const ctx = { ...buildScrollContext(loadScrollSettings(), scrolled ?? 0, mood, new Date(), place.type), ...scenario?.ctx };
-    return recommendScrollMinutes(scenario?.trace ?? live.trace, ctx, model);
-  }, [model, scrolled, mood, scenario, live.trace, place.type]);
+    // demos pretend it's the scenario's hour so "Bayes at 5 pm" works whenever you demo it
+    const now = new Date();
+    if (scenario?.ctx.hour !== undefined) now.setHours(scenario.ctx.hour, 30, 0, 0);
+    const ctx = { ...buildScrollContext(loadScrollSettings(), scrolled ?? 0, mood, now, placeKind), ...scenario?.ctx };
+    const base = recommendScrollMinutes(scenario?.trace ?? live.trace, ctx, model);
+    const p = personalise({
+      now: now.getTime(), baseMinutes: base.minutes, baseReason: base.reason, context: base.context,
+      minutesScrolledToday: ctx.minutesScrolledToday, mood,
+      lat: scenario ? undefined : live.last?.lat, lon: scenario ? undefined : live.last?.lon,
+      placeKind: ctx.placeType ?? placeKind, aim: loadAim(), exams: loadExams(), state: personalState,
+    });
+    return { ...base, minutes: p.minutes, reason: p.reason, personal: p, baseMinutes: base.minutes };
+  }, [model, scrolled, mood, scenario, live.trace, live.last, placeKind, personalState]);
+
+  // Learn from this open (real ones only, once per check-in) and tell the intercept the context.
+  const logged = useRef(false);
+  useEffect(() => {
+    if (!rec) return;
+    onContext?.({ recommended: rec.minutes, placeKind, lat: live.last?.lat, lon: live.last?.lon });
+    if (scenario || logged.current || live.status === "pending") return;
+    logged.current = true;
+    logEvent({ at: Date.now(), kind: "open", lat: live.last?.lat, lon: live.last?.lon, placeKind, mood });
+  }, [rec, scenario, live.status, live.last, placeKind, mood, onContext]);
 
   const placeLine = scenario
     ? scenario.placeName ?? null
@@ -123,6 +154,14 @@ export function ScrollRecommendation({
             <span className="ml-1 text-2xl font-semibold text-muted-foreground">min</span>
           </p>
           <p className="mt-3 text-center text-lg">{rec.reason}</p>
+          {rec.personal.factors.length > 0 && (
+            <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+              {rec.personal.factors.map((f) => <span key={f} className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium">{f}</span>)}
+            </div>
+          )}
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            Today's budget {rec.personal.budgetToday} min · {rec.personal.budgetLeft} min left{rec.baseMinutes !== rec.minutes ? ` · adjusted from ${rec.baseMinutes} for you` : ""}
+          </p>
           {placeLine && <p className="mt-2 text-center text-sm text-muted-foreground">📍 {placeLine}</p>}
           {locationNote && <p className="mt-2 text-center text-xs text-muted-foreground">{locationNote}</p>}
         </div>

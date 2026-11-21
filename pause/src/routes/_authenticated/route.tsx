@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, redirect, useLocation } from "@tanstack/
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { Home, Users, Wrench, User } from "lucide-react";
+import { Home, Users, Wrench, User, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { MeContext } from "@/lib/me";
 import { PROFILE_COLS, sendFriendRequest, type Profile } from "@/lib/pause";
@@ -72,6 +72,7 @@ function BottomNav() {
   const items = [
     { to: "/", label: "Home", Icon: Home },
     { to: "/friends", label: "Friends", Icon: Users },
+    { to: "/plan", label: "Plan", Icon: Target },
     { to: "/setup", label: "Setup", Icon: Wrench },
     { to: "/profile", label: "Me", Icon: User },
   ] as const;

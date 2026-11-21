@@ -42,6 +42,7 @@ function Setup() {
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
   const interceptUrl = `${origin}/intercept?app=instagram`;
+  const backUrl = `${origin}/back?app=instagram`;
   return (
     <main className="space-y-4 px-5 pt-6">
       <h1 className="text-3xl font-bold">iPhone setup</h1>
@@ -69,7 +70,14 @@ function Setup() {
         <p className="text-sm text-muted-foreground">Leave “Otherwise” empty.</p>
       </Step>
 
-      <Step n={3} title="Add Pause to your Home Screen">
+      <Step n={3} title="When Instagram closes, come back">
+        <p>This lets Pause learn how long you actually scrolled, so its suggestions fit you better over time.</p>
+        <p>Shortcuts → <b>Automation</b> → <b>+</b> → <b>App</b> → choose <b>Instagram</b>, tick <b>Is Closed</b> (untick Is Opened) → <b>Run Immediately</b>, turn off <b>Notify When Run</b>. Then add <b>Open URLs</b> with:</p>
+        <CopyLine value={backUrl} />
+        <p className="text-sm text-muted-foreground">Only scrolls you started from Pause are counted. Nothing leaves your phone.</p>
+      </Step>
+
+      <Step n={4} title="Add Pause to your Home Screen">
         <p>Open this page in Safari → <b>Share</b> → <b>Add to Home Screen</b>. It loads faster and keeps you signed in.</p>
       </Step>
 

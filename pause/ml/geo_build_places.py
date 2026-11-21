@@ -21,6 +21,16 @@ TYPE_KEYWORDS = [  # first match wins
 RADIUS_M = {"study": 60, "home": 50, "food": 25, "park": 100, "gym": 40}
 
 
+# per-item OSM type -> app place type (for files like places_city.json with a "type" field)
+ITEM_TYPE = {
+    "university": "study", "college": "study", "library": "study", "office": "study", "school": "study",
+    "student_halls": "home", "dormitory": "home", "halls": "home",
+    "pub": "food", "bar": "food", "cafe": "food", "restaurant": "food", "fast_food": "food", "food": "food",
+    "park": "park", "garden": "park",
+    "gym": "gym", "fitness_centre": "gym", "sports_centre": "gym",
+}
+
+
 def type_for(fname):
     f = fname.lower()
     for t, keys in TYPE_KEYWORDS:
@@ -52,6 +62,14 @@ def main(out):
                 if kt:
                     for it in v:
                         idx[kt].append(entry(it, kt) if kt != "busStops" else [round(it[0], 5), round(it[1], 5)])
+            continue
+        if isinstance(data, list) and data and isinstance(data[0], dict) and "type" in data[0]:
+            n = 0
+            for it in data:
+                kt = ITEM_TYPE.get(str(it["type"]).lower())
+                if kt:
+                    idx[kt].append(entry(it, kt)); n += 1
+            print(f"{os.path.basename(path)} -> by item type: {n} of {len(data)}")
             continue
         if not t:
             print("skipping (unknown type):", path)

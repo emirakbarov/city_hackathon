@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -12,16 +12,29 @@ import { Button } from "@/components/ui/button";
 import { PAvatar } from "@/components/pause/Avatar";
 import { LimitSlider } from "@/components/pause/LimitSlider";
 import { useSuggestedMinutes } from "@/lib/useSuggestedMinutes";
+import { timerExpired, timerMinutes } from "@/lib/scrollTimer";
+import { ProductiveIdeas } from "@/components/pause/ProductiveIdeas";
 
 export const Route = createFileRoute("/_authenticated/intercept")({
-  validateSearch: (s: Record<string, unknown>): { app?: string } =>
-    typeof s["app"] === "string" ? { app: s["app"] as string } : {},
+  validateSearch: (s: Record<string, unknown>): { app?: string; expires?: string; minutes?: number } => {
+    const minutes = timerMinutes(s["minutes"]);
+    return {
+      ...(typeof s["app"] === "string" ? { app: s["app"] } : {}),
+      ...(typeof s["expires"] === "string" ? { expires: s["expires"] } : {}),
+      ...(minutes === undefined ? {} : { minutes }),
+    };
+  },
+  beforeLoad: ({ search }) => {
+    if (timerExpired(search.expires)) throw redirect({ to: "/times-up", search: search.minutes === undefined ? {} : { minutes: search.minutes } });
+  },
   head: () => ({
     meta: [
       { title: "Pause before you scroll" },
       { name: "description", content: "A quick check-in and the friends who are free right now." },
       { property: "og:title", content: "Pause before you scroll" },
       { property: "og:description", content: "A quick check-in and the friends who are free right now." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Intercept,
@@ -51,9 +64,10 @@ function Intercept() {
     if (sessionId) await supabase.from("sessions").update(patch).eq("id", sessionId);
   }
 
-  async function exit(outcome: "redirected" | "continued") {
+  async function exit(outcome: "redirected" | "continued", destination?: string) {
     if (sessionId) await supabase.from("sessions").update(outcome === "continued" ? { outcome, limit_minutes: limit } : { outcome }).eq("id", sessionId);
     if (outcome === "continued") window.location.href = passUrl(limit);
+    else if (destination) window.location.href = destination;
     else navigate({ to: "/" });
   }
 
@@ -73,9 +87,10 @@ function Intercept() {
           </div>
         </section>
       )}
+      {step >= 1 && vibe === "productive" && <ProductiveIdeas onPick={url => exit("redirected", url)} />}
       {step >= 1 && <FriendsNow sessionId={sessionId} vibe={vibe} />}
 
-      {step >= 1 && <InterestIdeas interests={me.interests ?? []} onPick={(i) => { toast.success(`Enjoy ${i.toLowerCase()} ✨`); exit("redirected"); }} />}
+      {step >= 1 && vibe !== "productive" && <InterestIdeas interests={me.interests ?? []} onPick={(i) => { toast.success(`Enjoy ${i.toLowerCase()} ✨`); exit("redirected"); }} />}
 
       {step >= 1 && (
         <section className="mt-8 animate-in fade-in">

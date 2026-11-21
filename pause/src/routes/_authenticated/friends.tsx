@@ -18,6 +18,8 @@ export const Route = createFileRoute("/_authenticated/friends")({
       { name: "description", content: "Add friends by username, accept requests and share your invite link." },
       { property: "og:title", content: "Friends — Pause" },
       { property: "og:description", content: "Add friends by username, accept requests and share your invite link." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Friends,
@@ -44,9 +46,8 @@ function Friends() {
     queryKey: ["search", normalizeUsername(q)],
     enabled: normalizeUsername(q).length >= 2,
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select(PROFILE_COLS)
-        .ilike("username", `${normalizeUsername(q).replace(/[%_]/g, "\\$&")}%`).neq("id", me.id).limit(8);
-      return (data ?? []) as Profile[];
+      const { data } = await supabase.rpc("search_profiles", { _q: normalizeUsername(q) });
+      return ((data ?? []) as Partial<Profile>[]).map((p) => ({ interests: [], has_password: true, ...p }) as Profile);
     },
   });
 

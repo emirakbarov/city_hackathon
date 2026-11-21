@@ -35,8 +35,13 @@ export type Profile = {
   display_name: string;
   avatar_url: string | null;
   interests?: string[];
+  has_password?: boolean;
 };
-export const PROFILE_COLS = "id, username, display_name, avatar_url, interests";
+export const PROFILE_COLS = "id, username, display_name, avatar_url, interests, has_password";
+
+/** localStorage flag set when someone signs up or in with a password, so the
+ *  set-password gate doesn't loop before the profiles row catches up. */
+export const PW_SET_KEY = "pause_pw_set";
 
 /** Opens Pause Pass and hands it the chosen limit so it can start a timer. */
 export function passUrl(minutes: number) {
@@ -44,7 +49,7 @@ export function passUrl(minutes: number) {
 }
 
 export const INTEREST_IDEAS = [
-  "Chess", "Reading", "Running", "Gym", "Guitar", "Drawing", "Cooking", "Walking", "Gaming", "Journaling", "Meditation", "Calling family",
+  "Chess", "Reading", "Duolingo", "Learning a language", "News", "Running", "Gym", "Guitar", "Drawing", "Cooking", "Walking", "Gaming", "Journaling", "Meditation", "Calling family",
 ];
 
 /** A session only counts once it ended in a real choice: something else, or scrolling. */
@@ -99,7 +104,8 @@ export function latestPerUser<T extends { user_id: string; created_at: string }>
 
 export async function sendFriendRequest(myId: string, username: string): Promise<string> {
   const u = normalizeUsername(username);
-  const { data: target } = await supabase.from("profiles").select("id").eq("username", u).maybeSingle();
+  const { data: tid } = await supabase.rpc("find_profile_id", { _username: u });
+  const target = tid ? { id: tid as string } : null;
   if (!target) return "No one with that username";
   if (target.id === myId) return "That's you!";
   const { data: existing } = await supabase

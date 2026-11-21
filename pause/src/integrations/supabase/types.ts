@@ -14,6 +14,105 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_user_connections: {
+        Row: {
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_key_ciphertext?: string
+          connector_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      commitments: {
+        Row: {
+          all_day: boolean
+          created_at: string
+          due_date: string
+          end_date: string | null
+          ends_at: string | null
+          external_id: string | null
+          id: string
+          kind: string
+          source: string
+          starts_at: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          all_day?: boolean
+          created_at?: string
+          due_date: string
+          end_date?: string | null
+          ends_at?: string | null
+          external_id?: string | null
+          id?: string
+          kind?: string
+          source?: string
+          starts_at?: string | null
+          title: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          all_day?: boolean
+          created_at?: string
+          due_date?: string
+          end_date?: string | null
+          ends_at?: string | null
+          external_id?: string | null
+          id?: string
+          kind?: string
+          source?: string
+          starts_at?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      daily_intentions: {
+        Row: {
+          available_minutes: number
+          day: string
+          energy: string
+          objective: string
+          user_id: string
+        }
+        Insert: {
+          available_minutes?: number
+          day: string
+          energy?: string
+          objective: string
+          user_id: string
+        }
+        Update: {
+          available_minutes?: number
+          day?: string
+          energy?: string
+          objective?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       friendships: {
         Row: {
           addressee_id: string
@@ -113,6 +212,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           display_name: string
+          has_password: boolean
           id: string
           interests: string[]
           phone: string | null
@@ -122,6 +222,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           display_name: string
+          has_password?: boolean
           id: string
           interests?: string[]
           phone?: string | null
@@ -131,6 +232,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           display_name?: string
+          has_password?: boolean
           id?: string
           interests?: string[]
           phone?: string | null
@@ -260,6 +362,7 @@ export type Database = {
     }
     Functions: {
       are_friends: { Args: { a: string; b: string }; Returns: boolean }
+      find_profile_id: { Args: { _username: string }; Returns: string }
       friend_leaderboard: {
         Args: never
         Returns: {
@@ -269,6 +372,15 @@ export type Database = {
         }[]
       }
       get_phone: { Args: { _uid: string }; Returns: string }
+      search_profiles: {
+        Args: { _q: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          id: string
+          username: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

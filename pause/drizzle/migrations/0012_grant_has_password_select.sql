@@ -1,0 +1,1 @@
+grant select (has_password) on public.profiles to authenticated, anon;

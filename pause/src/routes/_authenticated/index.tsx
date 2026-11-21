@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/me";
 import { isLogged, reasonLabel } from "@/lib/pause";
+import { Commitments } from "@/components/pause/Commitments";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -12,6 +13,8 @@ export const Route = createFileRoute("/_authenticated/")({
       { name: "description", content: "Your Instagram opens, social wins and recent check-ins." },
       { property: "og:title", content: "Home — Pause" },
       { property: "og:description", content: "Your Instagram opens, social wins and recent check-ins." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Dashboard,
@@ -83,6 +86,8 @@ function Dashboard() {
           ))}
         </section>
       )}
+
+      <Commitments userId={me.id} />
 
       <section className="grid grid-cols-3 gap-3">
         <Stat label="Opens today" value={today.length} />

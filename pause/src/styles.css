@@ -57,6 +57,9 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-success: var(--success);
+  --color-google-surface: var(--google-surface);
+  --color-google-text: var(--google-text);
+  --color-google-border: var(--google-border);
   --font-display: "Fraunces", Georgia, serif;
   --font-sans: "Manrope", system-ui, sans-serif;
   --color-ring-offset-background: var(--background);
@@ -76,6 +79,9 @@
 }
 
 :root {
+  --google-surface: #FFFFFF;
+  --google-text: #1F1F1F;
+  --google-border: #747775;
   --radius: 1.25rem;
   --background: oklch(0.975 0.012 80);
   --foreground: oklch(0.26 0.03 50);
@@ -113,6 +119,9 @@
 }
 
 .dark {
+  --google-surface: #131314;
+  --google-text: #E3E3E3;
+  --google-border: #8E918F;
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 265.755);
@@ -162,3 +171,6 @@
   body { font-family: var(--font-sans); -webkit-tap-highlight-color: transparent; }
   h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
 }
+
+.google-sign-in { background: var(--google-surface); color: var(--google-text); border-color: var(--google-border); }
+.google-sign-in:hover { background: var(--google-surface); color: var(--google-text); }

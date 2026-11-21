@@ -11,12 +11,16 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedFriendsRouteImport } from './routes/_authenticated/friends'
 import { Route as AuthenticatedInterceptRouteImport } from './routes/_authenticated/intercept'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedSetPasswordRouteImport } from './routes/_authenticated/set-password'
 import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
+import { Route as AuthenticatedTimesUpRouteImport } from './routes/_authenticated/times-up'
 import { Route as InviteUsernameRouteImport } from './routes/invite.$username'
+import { Route as ApiOauthGoogle_calendarReturnRouteImport } from './routes/api/oauth/google_calendar/return'
 import { Route as ApiPublicJobsReminderRouteImport } from './routes/api/public/jobs/reminder'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -26,6 +30,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -48,9 +57,20 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSetPasswordRoute =
+  AuthenticatedSetPasswordRouteImport.update({
+    id: '/set-password',
+    path: '/set-password',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSetupRoute = AuthenticatedSetupRouteImport.update({
   id: '/setup',
   path: '/setup',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTimesUpRoute = AuthenticatedTimesUpRouteImport.update({
+  id: '/times-up',
+  path: '/times-up',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const InviteUsernameRoute = InviteUsernameRouteImport.update({
@@ -58,6 +78,12 @@ const InviteUsernameRoute = InviteUsernameRouteImport.update({
   path: '/invite/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOauthGoogle_calendarReturnRoute =
+  ApiOauthGoogle_calendarReturnRouteImport.update({
+    id: '/api/oauth/google_calendar/return',
+    path: '/api/oauth/google_calendar/return',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicJobsReminderRoute = ApiPublicJobsReminderRouteImport.update({
   id: '/api/public/jobs/reminder',
   path: '/api/public/jobs/reminder',
@@ -67,33 +93,45 @@ const ApiPublicJobsReminderRoute = ApiPublicJobsReminderRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/friends': typeof AuthenticatedFriendsRoute
   '/intercept': typeof AuthenticatedInterceptRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/set-password': typeof AuthenticatedSetPasswordRoute
   '/setup': typeof AuthenticatedSetupRoute
+  '/times-up': typeof AuthenticatedTimesUpRoute
   '/invite/$username': typeof InviteUsernameRoute
+  '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/jobs/reminder': typeof ApiPublicJobsReminderRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/friends': typeof AuthenticatedFriendsRoute
   '/intercept': typeof AuthenticatedInterceptRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/set-password': typeof AuthenticatedSetPasswordRoute
   '/setup': typeof AuthenticatedSetupRoute
+  '/times-up': typeof AuthenticatedTimesUpRoute
   '/invite/$username': typeof InviteUsernameRoute
   '/': typeof AuthenticatedIndexRoute
+  '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/jobs/reminder': typeof ApiPublicJobsReminderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/friends': typeof AuthenticatedFriendsRoute
   '/_authenticated/intercept': typeof AuthenticatedInterceptRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/set-password': typeof AuthenticatedSetPasswordRoute
   '/_authenticated/setup': typeof AuthenticatedSetupRoute
+  '/_authenticated/times-up': typeof AuthenticatedTimesUpRoute
   '/invite/$username': typeof InviteUsernameRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/api/oauth/google_calendar/return': typeof ApiOauthGoogle_calendarReturnRoute
   '/api/public/jobs/reminder': typeof ApiPublicJobsReminderRoute
 }
 export interface FileRouteTypes {
@@ -101,39 +139,53 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/reset-password'
     | '/friends'
     | '/intercept'
     | '/profile'
+    | '/set-password'
     | '/setup'
+    | '/times-up'
     | '/invite/$username'
+    | '/api/oauth/google_calendar/return'
     | '/api/public/jobs/reminder'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/reset-password'
     | '/friends'
     | '/intercept'
     | '/profile'
+    | '/set-password'
     | '/setup'
+    | '/times-up'
     | '/invite/$username'
     | '/'
+    | '/api/oauth/google_calendar/return'
     | '/api/public/jobs/reminder'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/reset-password'
     | '/_authenticated/friends'
     | '/_authenticated/intercept'
     | '/_authenticated/profile'
+    | '/_authenticated/set-password'
     | '/_authenticated/setup'
+    | '/_authenticated/times-up'
     | '/invite/$username'
     | '/_authenticated/'
+    | '/api/oauth/google_calendar/return'
     | '/api/public/jobs/reminder'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   InviteUsernameRoute: typeof InviteUsernameRoute
+  ApiOauthGoogle_calendarReturnRoute: typeof ApiOauthGoogle_calendarReturnRoute
   ApiPublicJobsReminderRoute: typeof ApiPublicJobsReminderRoute
 }
 
@@ -151,6 +203,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -181,6 +240,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/set-password': {
+      id: '/_authenticated/set-password'
+      path: '/set-password'
+      fullPath: '/set-password'
+      preLoaderRoute: typeof AuthenticatedSetPasswordRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/setup': {
       id: '/_authenticated/setup'
       path: '/setup'
@@ -188,11 +254,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSetupRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/times-up': {
+      id: '/_authenticated/times-up'
+      path: '/times-up'
+      fullPath: '/times-up'
+      preLoaderRoute: typeof AuthenticatedTimesUpRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/invite/$username': {
       id: '/invite/$username'
       path: '/invite/$username'
       fullPath: '/invite/$username'
       preLoaderRoute: typeof InviteUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/oauth/google_calendar/return': {
+      id: '/api/oauth/google_calendar/return'
+      path: '/api/oauth/google_calendar/return'
+      fullPath: '/api/oauth/google_calendar/return'
+      preLoaderRoute: typeof ApiOauthGoogle_calendarReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/jobs/reminder': {
@@ -209,7 +289,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFriendsRoute: typeof AuthenticatedFriendsRoute
   AuthenticatedInterceptRoute: typeof AuthenticatedInterceptRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedSetPasswordRoute: typeof AuthenticatedSetPasswordRoute
   AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
+  AuthenticatedTimesUpRoute: typeof AuthenticatedTimesUpRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
@@ -217,7 +299,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFriendsRoute: AuthenticatedFriendsRoute,
   AuthenticatedInterceptRoute: AuthenticatedInterceptRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedSetPasswordRoute: AuthenticatedSetPasswordRoute,
   AuthenticatedSetupRoute: AuthenticatedSetupRoute,
+  AuthenticatedTimesUpRoute: AuthenticatedTimesUpRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 
@@ -227,7 +311,9 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   InviteUsernameRoute: InviteUsernameRoute,
+  ApiOauthGoogle_calendarReturnRoute: ApiOauthGoogle_calendarReturnRoute,
   ApiPublicJobsReminderRoute: ApiPublicJobsReminderRoute,
 }
 export const routeTree = rootRouteImport

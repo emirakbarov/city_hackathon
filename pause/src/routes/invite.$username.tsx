@@ -10,6 +10,8 @@ export const Route = createFileRoute("/invite/$username")({
       { name: "description", content: `@${params.username} invited you to Pause — swap scrolling for hanging out.` },
       { property: "og:title", content: `Join @${params.username} on Pause` },
       { property: "og:description", content: "Swap scrolling for hanging out with friends." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Invite,

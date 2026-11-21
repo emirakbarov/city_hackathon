@@ -10,10 +10,14 @@ import {
 } from "@/lib/pause";
 import { Button } from "@/components/ui/button";
 import { PAvatar } from "@/components/pause/Avatar";
+import { ScrollRecommendation } from "@/components/pause/ScrollRecommendation";
 
 export const Route = createFileRoute("/_authenticated/intercept")({
-  validateSearch: (s: Record<string, unknown>): { app?: string } =>
-    typeof s["app"] === "string" ? { app: s["app"] as string } : {},
+  // ?demo=bus|gym|walk|library|over swaps the live GPS trace for a preset (hackathon demo).
+  validateSearch: (s: Record<string, unknown>): { app?: string; demo?: string } => ({
+    ...(typeof s["app"] === "string" ? { app: s["app"] as string } : {}),
+    ...(typeof s["demo"] === "string" ? { demo: s["demo"] as string } : {}),
+  }),
   head: () => ({
     meta: [
       { title: "Pause before you scroll" },
@@ -27,11 +31,15 @@ export const Route = createFileRoute("/_authenticated/intercept")({
 
 function Intercept() {
   const me = useMe();
-  const { app } = Route.useSearch();
+  const { app, demo } = Route.useSearch();
   const appName = (app || "instagram").toLowerCase();
   const navigate = useNavigate();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [step, setStep] = useState(0);
+  const [mood, setMood] = useState(3); // "Okay" if they skip the mood question
+  // TODO: save on the session row once `sessions` has a minutes column (ask Lovable; don't hand-edit migrations).
+  const [scrollMinutes, setScrollMinutes] = useState<number | null>(null);
+  const showDemo = demo !== undefined || import.meta.env.DEV;
   const started = useRef(false);
 
   useEffect(() => {
@@ -42,6 +50,7 @@ function Intercept() {
   }, [me.id, appName]);
 
   async function answer(patch: { reason?: string; mood?: number; free_status?: string }) {
+    if (patch.mood !== undefined) setMood(patch.mood);
     setStep((s) => s + 1);
     if (sessionId) await supabase.from("sessions").update(patch).eq("id", sessionId);
   }
@@ -57,7 +66,7 @@ function Intercept() {
   return (
     <main className="flex min-h-[100dvh] flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-6">
       <div className="mb-6 flex gap-1.5">
-        {[0, 1, 2].map((i) => <div key={i} className={`h-1.5 flex-1 rounded-full ${i < step ? "bg-primary" : i === step ? "bg-primary/50" : "bg-border"}`} />)}
+        {[0, 1, 2, 3].map((i) => <div key={i} className={`h-1.5 flex-1 rounded-full ${i < step ? "bg-primary" : i === step ? "bg-primary/50" : "bg-border"}`} />)}
       </div>
 
       {step === 0 && (
@@ -86,12 +95,19 @@ function Intercept() {
           </div>
         </Question>
       )}
-      {step >= 3 && <FriendsNow sessionId={sessionId} />}
+      {step === 3 && (
+        <ScrollRecommendation
+          mood={mood} demo={demo} showDemo={showDemo}
+          onDemoChange={(d) => navigate({ to: "/intercept", search: { ...(app ? { app } : {}), ...(d ? { demo: d } : {}) }, replace: true })}
+          minutes={scrollMinutes} onMinutes={setScrollMinutes} onNext={() => setStep(4)}
+        />
+      )}
+      {step >= 4 && <FriendsNow sessionId={sessionId} />}
 
       <div className="mt-auto space-y-2 pt-6">
         <Button className="h-14 w-full rounded-2xl text-lg" onClick={() => exit("redirected")}>Do something else</Button>
         <Button variant="ghost" className="h-12 w-full rounded-2xl text-muted-foreground" onClick={() => exit("continued")}>
-          Continue to {label}
+          Continue to {label}{scrollMinutes && step >= 3 ? ` · ${scrollMinutes} min` : ""}
         </Button>
       </div>
     </main>

@@ -16,7 +16,10 @@ export type ScrollContext = {
   mood: number; // 1-5
   hour: number; // 0-23
   expectedTripMinutes: number; // -1 = none
+  placeType?: PlaceType; // what kind of place you're sat in (from map data); default "unknown"
 };
+
+export type PlaceType = "study" | "home" | "food" | "park" | "gym" | "unknown";
 
 export type ContextClass = "stationary" | "gym" | "walking" | "cycling" | "bus" | "car";
 
@@ -31,6 +34,7 @@ export type ScrollModel = {
   classifier: { trees: Tree<number[]>[] };
   regressorFeatureNames: string[];
   regressor: { trees: Tree<number>[] };
+  places?: PlaceType[]; // one-hot place flags appended to the regressor input ("unknown" = all zero)
 };
 
 export type Detection = { context: ContextClass; confidence: number; probabilities: Record<string, number> };
@@ -134,7 +138,7 @@ function roundHalfEven(x: number): number {
   return Math.abs(x % 1) === 0.5 && r % 2 !== 0 ? r - 1 : r;
 }
 
-export function regressorInput(ctx: ScrollContext, probs: number[]): number[] {
+export function regressorInput(ctx: ScrollContext, probs: number[], model: ScrollModel): number[] {
   return [
     ctx.minutesScrolledToday,
     ctx.dailyTargetMinutes,
@@ -147,13 +151,14 @@ export function regressorInput(ctx: ScrollContext, probs: number[]): number[] {
     ctx.hour,
     ctx.expectedTripMinutes ?? -1,
     ...probs,
+    ...(model.places ?? []).map((p) => ((ctx.placeType ?? "unknown") === p ? 1 : 0)),
   ];
 }
 
 export function recommendScrollMinutes(trace: TraceSample[], ctx: ScrollContext, model: ScrollModel): Recommendation {
   const probs = classify(extractTraceFeatures(trace, model), model);
   const det = detectFromProbs(probs, model);
-  const x = regressorInput(ctx, probs);
+  const x = regressorInput(ctx, probs, model);
   let raw = 0;
   for (const tree of model.regressor.trees) raw += leaf(tree, x);
   let minutes = raw / model.regressor.trees.length;
@@ -185,6 +190,12 @@ function buildReason(top: ContextClass, unsafe: boolean, m: number, ctx: ScrollC
     return m === 0 ? "Something's coming up, so best get going." : `Something's on in ${commit} min, so just ${min}.`;
   }
   if (top === "gym") return ctx.inSetRest && m > 0 ? `Between sets: ${min}, then back to it.` : "Gym time: phone down, smash the set.";
+  const place = ctx.placeType ?? "unknown";
+  const lunch = ctx.hour >= 12 && ctx.hour < 14;
+  const workHours = place === "study" && ctx.hour >= 9 && ctx.hour < 18 && !lunch;
+  if (top === "stationary" && workHours && m <= 3) {
+    return m === 0 ? "You're at uni in work hours: get it done, scroll at lunch." : `Work hours at uni, so just ${min}.`;
+  }
   if (m === 0) return ctx.examPeriod ? "Exam focus: give scrolling a miss for now." : "Not a great time for a scroll, so maybe later.";
   if (ctx.examPeriod && ctx.daysUntilExam >= 0 && ctx.daysUntilExam <= 7) {
     const d = ctx.daysUntilExam;
@@ -195,6 +206,10 @@ function buildReason(top: ContextClass, unsafe: boolean, m: number, ctx: ScrollC
   if (ctx.hour >= 23 || ctx.hour < 6) return `It's late, so ${min} then wind down.`;
   if (ctx.mood <= 2 && m <= 6) return `Rough day? Take ${min}, go easy on yourself.`;
   if (top === "bus") return `You're on the bus, so enjoy ~${min} till your stop.`;
+  if (top === "stationary" && place === "study" && lunch) return `Lunch break at uni: enjoy ${min}.`;
+  if (top === "stationary" && place === "food") return `You're out eating, so ${min} and then be present.`;
+  if (top === "stationary" && place === "park") return `You're in the park: ${min}, then look up.`;
+  if (top === "stationary" && place === "home" && (ctx.hour >= 18 || ctx.hour < 9)) return `Evening at home: ${min} to unwind.`;
   if (ctx.examPeriod) return `Exam season, so keep it to ${min}.`;
   return `You're settled, so enjoy ${min}.`;
 }

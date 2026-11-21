@@ -13,11 +13,12 @@ from sklearn.metrics import accuracy_score, confusion_matrix, mean_absolute_erro
 
 from features import trace_features, FEATURE_NAMES, STOP_SPEED, MIN_STOP_S
 
+PLACES = ["study", "home", "food", "park", "gym"]  # "unknown" = all zeros
 CLASSES = ["stationary", "gym", "walking", "cycling", "bus", "car"]
 REG_FEATURES = [
     "minutesScrolledToday", "dailyTargetMinutes", "minutesLeft", "examPeriod", "daysUntilExam",
     "minutesToNextCommitment", "inSetRest", "mood", "hour", "expectedTripMinutes",
-] + [f"p_{c}" for c in CLASSES]
+] + [f"p_{c}" for c in CLASSES] + [f"place_{p}" for p in PLACES]
 UNSAFE = {"walking", "cycling", "car"}
 
 
@@ -27,7 +28,7 @@ def ctx_vector(c, probs):
         c["dailyTargetMinutes"] - c["minutesScrolledToday"],
         1 if c["examPeriod"] else 0, c["daysUntilExam"], c["minutesToNextCommitment"],
         1 if c["inSetRest"] else 0, c["mood"], c["hour"], c["expectedTripMinutes"],
-    ] + list(probs)
+    ] + list(probs) + [1 if c.get("placeType") == p else 0 for p in PLACES]
 
 
 def guards(raw, probs, c):
@@ -100,13 +101,19 @@ def main():
         print(f"  {c:10s} MAE {mean_absolute_error(truth[mask], final[mask]):5.2f}  "
               f"mean true {truth[mask].mean():5.1f}  mean pred {final[mask].mean():5.1f}")
 
+    for place in PLACES + ["unknown"]:
+        mask = np.array([rows[i]["context"].get("placeType") == place and rows[i]["mode"] == "stationary" for i in te])
+        if mask.any():
+            print(f"  sat still at {place:8s} MAE {mean_absolute_error(truth[mask], final[mask]):5.2f}  mean pred {final[mask].mean():5.1f}")
+
     model = {
-        "version": "local-v1",
+        "version": "local-v2-places",
         "stopSpeed": STOP_SPEED, "minStopS": MIN_STOP_S,
         "classes": CLASSES,
         "traceFeatureNames": FEATURE_NAMES,
         "classifier": {"trees": [export_tree(e, True) for e in clf.estimators_]},
         "regressorFeatureNames": REG_FEATURES,
+        "places": PLACES,
         "regressor": {"trees": [export_tree(e, False) for e in reg.estimators_]},
     }
     json.dump(model, open("scroll-model.json", "w"), separators=(",", ":"))

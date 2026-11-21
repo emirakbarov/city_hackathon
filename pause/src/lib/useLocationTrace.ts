@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { speedsFromPositions, type Position, type TraceSample } from "@/lib/scrollModel";
+import { nearBusStop, nearGym, type PlaceIndex } from "@/lib/places";
 
 export type LocationStatus = "pending" | "ok" | "denied" | "unavailable";
 
@@ -25,13 +26,13 @@ const recent = (ps: Position[], now = Date.now()) => ps.filter((p) => now - p.ti
  * Rolling ~2.5 min GPS buffer -> speed trace for the scroll model.
  * Persisted to sessionStorage so a reload (or bouncing back from the Shortcut) keeps the history.
  *
- * TODO(map data): atBusStop / nearGym are left undefined, which makes bus detection lean on the
- * stop-and-go pattern only. Fill them by matching each position against:
- *   - NaPTAN bus stops (https://naptan.api.dft.gov.uk, e.g. within ~25 m of a stop), and
- *   - gym POIs (OSM leisure=fitness_centre via Overpass), e.g. within ~40 m.
- * Ideally pre-fetch a small tile around the user and match on-device so no location leaves the phone.
+ * atBusStop / nearGym come from real NaPTAN bus stops and OSM gyms (places index), matched
+ * on-device so no location leaves the phone. Without the index they stay undefined and bus
+ * detection leans on the stop-and-go pattern only.
  */
-export function useLocationTrace(enabled = true): { trace: TraceSample[]; status: LocationStatus; samples: number } {
+export function useLocationTrace(enabled = true, places?: PlaceIndex | null): {
+  trace: TraceSample[]; status: LocationStatus; samples: number; last: Position | null;
+} {
   const [positions, setPositions] = useState<Position[]>([]);
   const [status, setStatus] = useState<LocationStatus>("pending");
 
@@ -57,6 +58,16 @@ export function useLocationTrace(enabled = true): { trace: TraceSample[]; status
     return () => navigator.geolocation.clearWatch(id);
   }, [enabled]);
 
-  const trace = useMemo(() => speedsFromPositions(positions), [positions]);
-  return { trace, status, samples: positions.length };
+  const trace = useMemo(() => {
+    const samples = speedsFromPositions(positions);
+    if (!places || !positions.length) return samples;
+    const t0 = positions[0]!.timestamp;
+    // tag each resampled point using the raw fix closest in time
+    return samples.map((s) => {
+      let near = positions[0]!;
+      for (const p of positions) if (Math.abs((p.timestamp - t0) / 1000 - s.t) < Math.abs((near.timestamp - t0) / 1000 - s.t)) near = p;
+      return { ...s, atBusStop: nearBusStop(near.lat, near.lon, places) ?? false, nearGym: nearGym(near.lat, near.lon, places) ?? false };
+    });
+  }, [positions, places]);
+  return { trace, status, samples: positions.length, last: positions.at(-1) ?? null };
 }

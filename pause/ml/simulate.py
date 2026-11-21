@@ -105,6 +105,12 @@ def simulate_context(rng, mode):
     has_commitment = rng.random() < 0.55
     mins_to_commit = int(rng.integers(3, 180)) if has_commitment else -1
     hour = int(rng.integers(7, 25)) % 24
+    if mode == "stationary":
+        place = str(rng.choice(["study", "home", "food", "park", "unknown"], p=[0.38, 0.25, 0.15, 0.07, 0.15]))
+    elif mode == "gym":
+        place = "gym"
+    else:
+        place = "unknown"
     return {
         "minutesScrolledToday": scrolled,
         "dailyTargetMinutes": target,
@@ -114,6 +120,7 @@ def simulate_context(rng, mode):
         "inSetRest": bool(mode == "gym" and rng.random() < 0.7),
         "mood": int(rng.integers(1, 6)),
         "hour": hour,
+        "placeType": place,
         "expectedTripMinutes": int(rng.integers(5, 40)) if mode == "bus" else -1,
     }
 

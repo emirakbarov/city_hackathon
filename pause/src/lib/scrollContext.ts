@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { ScrollContext, TraceSample } from "@/lib/scrollModel";
+import type { PlaceType, ScrollContext, TraceSample } from "@/lib/scrollModel";
 
 /**
  * Context the scroll-time model needs that the app doesn't collect yet.
@@ -46,7 +46,7 @@ export async function minutesScrolledToday(userId: string): Promise<number> {
 }
 
 export function buildScrollContext(
-  s: ScrollSettings, scrolledToday: number, mood: number, now = new Date(),
+  s: ScrollSettings, scrolledToday: number, mood: number, now = new Date(), placeType: PlaceType = "unknown",
 ): ScrollContext {
   const days = s.examDate ? Math.ceil((new Date(s.examDate).getTime() - now.getTime()) / 86_400_000) : -1;
   const examPeriod = days >= 0 && days <= 14;
@@ -61,6 +61,7 @@ export function buildScrollContext(
     mood,
     hour: now.getHours(),
     expectedTripMinutes: -1, // TODO: from a journey planner (TfL/bus API) once we know the destination
+    placeType,
   };
 }
 
@@ -107,6 +108,8 @@ export type DemoScenario = {
   trace: TraceSample[];
   /** Overrides on top of the real context (mood still comes from the check-in). */
   ctx: Partial<ScrollContext>;
+  /** Place name shown on the card for demo scenarios. */
+  placeName?: string;
 };
 
 export const DEMO_SCENARIOS: DemoScenario[] = [
@@ -118,6 +121,12 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
     ctx: { minutesScrolledToday: 10, dailyTargetMinutes: 60, examPeriod: false, daysUntilExam: -1, minutesToNextCommitment: -1 } },
   { id: "library", label: "Library, exam week", emoji: "📚", trace: stillTrace(),
     ctx: { minutesScrolledToday: 25, dailyTargetMinutes: 60, examPeriod: true, daysUntilExam: 2, minutesToNextCommitment: 90 } },
+  { id: "bayes", label: "Bayes, 5 pm", emoji: "🏫", trace: stillTrace(), placeName: "Bayes Business School",
+    ctx: { minutesScrolledToday: 20, dailyTargetMinutes: 60, hour: 17, placeType: "study", examPeriod: false, daysUntilExam: -1, minutesToNextCommitment: -1 } },
+  { id: "lunch", label: "Bayes, lunch", emoji: "🥪", trace: stillTrace(), placeName: "Bayes Business School",
+    ctx: { minutesScrolledToday: 20, dailyTargetMinutes: 60, hour: 12, placeType: "study", examPeriod: false, daysUntilExam: -1, minutesToNextCommitment: -1 } },
+  { id: "halls", label: "Halls, evening", emoji: "🏠", trace: stillTrace(), placeName: "Student halls",
+    ctx: { minutesScrolledToday: 20, dailyTargetMinutes: 60, hour: 21, placeType: "home", examPeriod: false, daysUntilExam: -1, minutesToNextCommitment: -1 } },
   { id: "over", label: "Way over target", emoji: "📵", trace: stillTrace(),
     ctx: { minutesScrolledToday: 150, dailyTargetMinutes: 60, examPeriod: false, daysUntilExam: -1, minutesToNextCommitment: -1 } },
 ];

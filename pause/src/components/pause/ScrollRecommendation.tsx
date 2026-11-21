@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import modelUrl from "@/lib/scroll-model.json?url";
+import placesUrl from "@/lib/places-london.json?url";
+import { matchPlace, type PlaceIndex } from "@/lib/places";
 import { useMe } from "@/lib/me";
 import { recommendScrollMinutes, type ContextClass, type ScrollModel } from "@/lib/scrollModel";
 import { DEMO_SCENARIOS, buildScrollContext, demoScenario, loadScrollSettings, minutesScrolledToday } from "@/lib/scrollContext";
@@ -29,6 +31,18 @@ async function loadModel(): Promise<ScrollModel> {
   return (await res.json()) as ScrollModel;
 }
 
+/** Real places (OSM + NaPTAN), also a static asset; if it fails we just don't know the place type. */
+async function loadPlaces(): Promise<PlaceIndex | null> {
+  try {
+    const res = await fetch(placesUrl);
+    return res.ok ? ((await res.json()) as PlaceIndex) : null;
+  } catch {
+    return null;
+  }
+}
+
+const PLACE_LABEL: Record<string, string> = { study: "uni / library", home: "home", food: "café / pub", park: "park", gym: "gym" };
+
 export function ScrollRecommendation({
   mood, demo, showDemo, onDemoChange, minutes, onMinutes, onNext,
 }: {
@@ -42,7 +56,12 @@ export function ScrollRecommendation({
 }) {
   const me = useMe();
   const scenario = demoScenario(demo);
-  const live = useLocationTrace(!scenario);
+  const { data: places } = useQuery({ queryKey: ["places"], queryFn: loadPlaces, staleTime: Infinity });
+  const live = useLocationTrace(!scenario, places);
+  const place = useMemo(
+    () => (live.last ? matchPlace(live.last.lat, live.last.lon, places) : { type: "unknown" as const, name: null, distanceM: null }),
+    [live.last, places],
+  );
   const [touched, setTouched] = useState(false);
 
   const { data: model, isError } = useQuery({ queryKey: ["scroll-model"], queryFn: loadModel, staleTime: Infinity });
@@ -50,9 +69,13 @@ export function ScrollRecommendation({
 
   const rec = useMemo(() => {
     if (!model) return null;
-    const ctx = { ...buildScrollContext(loadScrollSettings(), scrolled ?? 0, mood), ...scenario?.ctx };
+    const ctx = { ...buildScrollContext(loadScrollSettings(), scrolled ?? 0, mood, new Date(), place.type), ...scenario?.ctx };
     return recommendScrollMinutes(scenario?.trace ?? live.trace, ctx, model);
-  }, [model, scrolled, mood, scenario, live.trace]);
+  }, [model, scrolled, mood, scenario, live.trace, place.type]);
+
+  const placeLine = scenario
+    ? scenario.placeName ?? null
+    : place.type !== "unknown" ? (place.name ?? PLACE_LABEL[place.type] ?? null) : null;
 
   // Pre-set the slider to the recommendation until the user moves it; a new scenario resets that.
   useEffect(() => { setTouched(false); }, [demo]);
@@ -100,6 +123,7 @@ export function ScrollRecommendation({
             <span className="ml-1 text-2xl font-semibold text-muted-foreground">min</span>
           </p>
           <p className="mt-3 text-center text-lg">{rec.reason}</p>
+          {placeLine && <p className="mt-2 text-center text-sm text-muted-foreground">📍 {placeLine}</p>}
           {locationNote && <p className="mt-2 text-center text-xs text-muted-foreground">{locationNote}</p>}
         </div>
       )}

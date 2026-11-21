@@ -54,6 +54,7 @@ function Setup() {
           Add Pause Pass shortcut
         </a>
         <p className="text-sm text-muted-foreground">This lets “Continue to Instagram” open it without Pause popping up again.</p>
+        <p className="text-sm text-muted-foreground"><b>To stop on time:</b> open Pause Pass, add <b>Start Timer</b> before “Open App”, and set its minutes to <b>Shortcut Input</b>. Pause sends the limit you picked, and your timer rings when it's up.</p>
       </Step>
 
       <Step n={2} title="Create the automation">

@@ -8,6 +8,8 @@ import { PROFILE_COLS, inviteUrl, normalizeUsername, sendFriendRequest, type Pro
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PAvatar } from "@/components/pause/Avatar";
+import { QRCodeSVG } from "qrcode.react";
+import { Leaderboard } from "@/components/pause/Leaderboard";
 
 export const Route = createFileRoute("/_authenticated/friends")({
   head: () => ({
@@ -71,15 +73,9 @@ function Friends() {
     <main className="space-y-6 px-5 pt-6">
       <h1 className="text-3xl font-bold">Friends</h1>
 
-      <section className="rounded-3xl bg-primary p-5 text-primary-foreground">
-        <p className="font-semibold">Your invite link</p>
-        <p className="mt-1 truncate text-sm opacity-90">{typeof window !== "undefined" ? inviteUrl(me.username) : ""}</p>
-        <Button variant="secondary" className="mt-3 h-12 w-full rounded-2xl" onClick={async () => {
-          const url = inviteUrl(me.username);
-          if (navigator.share) { try { await navigator.share({ title: "Join me on Pause", url }); return; } catch { /* fall through */ } }
-          await navigator.clipboard.writeText(url); toast.success("Invite link copied");
-        }}>Share invite link</Button>
-      </section>
+      <Leaderboard meId={me.id} onInvite={() =>
+        document.getElementById("invite-friends")?.scrollIntoView({ behavior: "smooth", block: "center" })
+      } />
 
       <section>
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by username" autoCapitalize="none" className="h-14 rounded-2xl text-lg" />
@@ -116,7 +112,7 @@ function Friends() {
 
       <section>
         <h2 className="mb-2 text-lg font-semibold">Your friends <span className="text-muted-foreground">({friends.length})</span></h2>
-        {friends.length === 0 ? <p className="text-muted-foreground">No friends yet — share your link above.</p> : (
+        {friends.length === 0 ? <p className="text-muted-foreground">No friends yet — share your invite link below.</p> : (
           <ul className="space-y-2">
             {friends.map((f) => f.other && (
               <Row key={f.id} p={f.other}>
@@ -139,6 +135,8 @@ function Friends() {
           </ul>
         </section>
       )}
+
+      <InviteCard username={me.username} />
     </main>
   );
 }
@@ -153,5 +151,44 @@ function Row({ p, children }: { p: Profile; children: React.ReactNode }) {
       </div>
       <div className="flex gap-1">{children}</div>
     </li>
+  );
+}
+
+function InviteCard({ username }: { username: string }) {
+  const [big, setBig] = useState(false);
+  const [url, setUrl] = useState("");
+  useEffect(() => setUrl(inviteUrl(username)), [username]);
+  return (
+    <>
+      <section id="invite-friends" className="scroll-mt-24 rounded-3xl bg-primary p-5 text-primary-foreground">
+        <div className="flex items-center gap-4">
+          <button aria-label="Show QR code bigger" onClick={() => setBig(true)}
+            className="shrink-0 rounded-xl bg-card p-1.5 text-foreground transition active:scale-95">
+            <QRCodeSVG value={url} size={56} fgColor="currentColor" bgColor="transparent" />
+          </button>
+          <div className="min-w-0">
+            <p className="font-semibold">Invite a new friend</p>
+        <p className="mt-1 truncate text-sm opacity-90">{url}</p>
+            <p className="text-xs opacity-80">Tap the code to make it bigger</p>
+          </div>
+        </div>
+        <Button variant="secondary" className="mt-3 h-12 w-full rounded-2xl" onClick={async () => {
+          const url = inviteUrl(username);
+          if (navigator.share) { try { await navigator.share({ title: "Join me on Pause", url }); return; } catch { /* fall through */ } }
+          await navigator.clipboard.writeText(url); toast.success("Invite link copied");
+        }}>Share invite link</Button>
+      </section>
+
+      {big && (
+        <div role="dialog" aria-label="Invite QR code" onClick={() => setBig(false)}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background/95 p-6 animate-in fade-in">
+          <div className="rounded-3xl bg-card p-5 text-foreground shadow-lg">
+            <QRCodeSVG value={url} size={260} fgColor="currentColor" bgColor="transparent" />
+          </div>
+          <p className="text-center font-semibold">Scan to add @{username} on Pause</p>
+          <p className="text-sm text-muted-foreground">Tap anywhere to close</p>
+        </div>
+      )}
+    </>
   );
 }

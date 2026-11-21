@@ -1,6 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const REASONS = [
+  { value: "socialise", label: "Socialise" },
+  { value: "productive", label: "Be productive" },
+  { value: "relax", label: "Relax" },
+] as const;
+
+// Older check-in answers, kept so past sessions still show a label.
+const LEGACY_REASONS = [
   { value: "bored", label: "Bored" },
   { value: "procrastinating", label: "Procrastinating" },
   { value: "messaging", label: "Messaging someone" },
@@ -16,12 +23,6 @@ export const MOODS = [
   { value: 5, emoji: "😄", label: "Great" },
 ] as const;
 
-export const FREE = [
-  { value: "yes", label: "Yes" },
-  { value: "maybe", label: "Maybe" },
-  { value: "no", label: "No" },
-] as const;
-
 export const ACTIVITIES = ["Call?", "Grab food?", "Go for a walk?", "Gym?", "Play something?"] as const;
 export type Activity = (typeof ACTIVITIES)[number];
 
@@ -33,11 +34,28 @@ export type Profile = {
   username: string;
   display_name: string;
   avatar_url: string | null;
+  interests?: string[];
 };
-export const PROFILE_COLS = "id, username, display_name, avatar_url";
+export const PROFILE_COLS = "id, username, display_name, avatar_url, interests";
+
+/** Opens Pause Pass and hands it the chosen limit so it can start a timer. */
+export function passUrl(minutes: number) {
+  return `${SHORTCUT_URL}&input=text&text=${Math.round(minutes)}`;
+}
+
+export const INTEREST_IDEAS = [
+  "Chess", "Reading", "Running", "Gym", "Guitar", "Drawing", "Cooking", "Walking", "Gaming", "Journaling", "Meditation", "Calling family",
+];
+
+/** A session only counts once it ended in a real choice: something else, or scrolling. */
+export const LOGGED_OUTCOMES = ["redirected", "continued"] as const;
+
+export function isLogged(outcome: string) {
+  return (LOGGED_OUTCOMES as readonly string[]).includes(outcome);
+}
 
 export function reasonLabel(v: string | null) {
-  return REASONS.find((r) => r.value === v)?.label ?? "—";
+  return [...REASONS, ...LEGACY_REASONS].find((r) => r.value === v)?.label ?? "—";
 }
 
 export function timeAgo(iso: string, now = Date.now()) {

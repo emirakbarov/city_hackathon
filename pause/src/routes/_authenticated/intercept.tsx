@@ -5,11 +5,12 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/me";
 import {
-  ACTIVE_WINDOW_MIN, ACTIVITIES, FREE, MOODS, PROFILE_COLS, REASONS, SHORTCUT_URL,
+  ACTIVE_WINDOW_MIN, ACTIVITIES, PROFILE_COLS, REASONS, passUrl,
   friendIds, inviteUrl, latestPerUser, timeAgo, type Profile,
 } from "@/lib/pause";
 import { Button } from "@/components/ui/button";
 import { PAvatar } from "@/components/pause/Avatar";
+import { LimitSlider } from "@/components/pause/LimitSlider";
 
 export const Route = createFileRoute("/_authenticated/intercept")({
   validateSearch: (s: Record<string, unknown>): { app?: string } =>
@@ -32,7 +33,9 @@ function Intercept() {
   const navigate = useNavigate();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [step, setStep] = useState(0);
+  const [vibe, setVibe] = useState<string | null>(null);
   const started = useRef(false);
+  const [limit, setLimit] = useState(15);
 
   useEffect(() => {
     if (started.current) return;
@@ -41,14 +44,14 @@ function Intercept() {
       .then(({ data, error }) => { if (error) toast.error("Couldn't log this open"); else setSessionId(data.id); });
   }, [me.id, appName]);
 
-  async function answer(patch: { reason?: string; mood?: number; free_status?: string }) {
+  async function answer(patch: { reason?: string }) {
     setStep((s) => s + 1);
     if (sessionId) await supabase.from("sessions").update(patch).eq("id", sessionId);
   }
 
   async function exit(outcome: "redirected" | "continued") {
-    if (sessionId) await supabase.from("sessions").update({ outcome }).eq("id", sessionId);
-    if (outcome === "continued") window.location.href = SHORTCUT_URL;
+    if (sessionId) await supabase.from("sessions").update(outcome === "continued" ? { outcome, limit_minutes: limit } : { outcome }).eq("id", sessionId);
+    if (outcome === "continued") window.location.href = passUrl(limit);
     else navigate({ to: "/" });
   }
 
@@ -57,68 +60,56 @@ function Intercept() {
   return (
     <main className="flex min-h-[100dvh] flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-6">
       <div className="mb-6 flex gap-1.5">
-        {[0, 1, 2].map((i) => <div key={i} className={`h-1.5 flex-1 rounded-full ${i < step ? "bg-primary" : i === step ? "bg-primary/50" : "bg-border"}`} />)}
+        {[0].map((i) => <div key={i} className={`h-1.5 flex-1 rounded-full ${i < step ? "bg-primary" : i === step ? "bg-primary/50" : "bg-border"}`} />)}
       </div>
 
       {step === 0 && (
-        <Question title={`Why are you opening ${label}?`} onSkip={() => setStep(1)}>
+        <section className="animate-in fade-in slide-in-from-right-4">
+          <h1 className="mb-6 text-3xl font-bold leading-tight">Do you want to...</h1>
           <div className="grid gap-3">
-            {REASONS.map((r) => <BigButton key={r.value} onClick={() => answer({ reason: r.value })}>{r.label}</BigButton>)}
+            {REASONS.map((r) => <BigButton key={r.value} onClick={() => { setVibe(r.value); answer({ reason: r.value }); }}>{r.label}</BigButton>)}
           </div>
-        </Question>
+        </section>
       )}
-      {step === 1 && (
-        <Question title="How are you feeling?" onSkip={() => setStep(2)}>
-          <div className="grid grid-cols-5 gap-2">
-            {MOODS.map((m) => (
-              <button key={m.value} onClick={() => answer({ mood: m.value })}
-                className="flex aspect-[3/4] flex-col items-center justify-center gap-1 rounded-3xl bg-card text-4xl shadow-sm transition active:scale-95">
-                {m.emoji}<span className="text-xs text-muted-foreground">{m.label}</span>
-              </button>
-            ))}
-          </div>
-        </Question>
+      {step >= 1 && <FriendsNow sessionId={sessionId} vibe={vibe} />}
+
+      {step >= 1 && <InterestIdeas interests={me.interests ?? []} onPick={(i) => { toast.success(`Enjoy ${i.toLowerCase()} ✨`); exit("redirected"); }} />}
+
+      {step >= 1 && (
+        <section className="mt-8 animate-in fade-in">
+          <h2 className="mb-1 text-xl font-bold">Still want to scroll?</h2>
+          <p className="mb-4 text-sm text-muted-foreground">Up to 45 minutes. Past 30 it gets hard on purpose.</p>
+          <LimitSlider onChange={setLimit} />
+        </section>
       )}
-      {step === 2 && (
-        <Question title="Free to do something in the next hour?" onSkip={() => setStep(3)}>
-          <div className="grid gap-3">
-            {FREE.map((f) => <BigButton key={f.value} onClick={() => answer({ free_status: f.value })}>{f.label}</BigButton>)}
-          </div>
-        </Question>
-      )}
-      {step >= 3 && <FriendsNow sessionId={sessionId} />}
 
       <div className="mt-auto space-y-2 pt-6">
         <Button className="h-14 w-full rounded-2xl text-lg" onClick={() => exit("redirected")}>Do something else</Button>
-        <Button variant="ghost" className="h-12 w-full rounded-2xl text-muted-foreground" onClick={() => exit("continued")}>
-          Continue to {label}
-        </Button>
+        {step >= 1 && (
+          <Button variant="ghost" className="h-12 w-full rounded-2xl text-muted-foreground" onClick={() => exit("continued")}>
+            {`Start ${limit} min on ${label}`}
+          </Button>
+        )}
       </div>
     </main>
   );
 }
 
-function Question({ title, onSkip, children }: { title: string; onSkip: () => void; children: React.ReactNode }) {
-  return (
-    <section className="animate-in fade-in slide-in-from-right-4">
-      <h1 className="mb-6 text-3xl font-bold leading-tight">{title}</h1>
-      {children}
-      <button onClick={onSkip} className="mt-4 w-full py-2 text-sm text-muted-foreground underline-offset-4 hover:underline">Skip</button>
-    </section>
-  );
-}
-
 function BigButton({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="h-16 rounded-2xl bg-card px-5 text-left text-lg font-semibold shadow-sm transition active:scale-[0.98] active:bg-accent">
-      {children}
+    <button
+      onClick={onClick}
+      className="group flex h-16 w-full items-center justify-between gap-3 rounded-2xl bg-card px-5 text-left text-lg font-semibold shadow-sm ring-1 ring-transparent transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-accent hover:shadow-md hover:ring-primary/30 active:translate-y-0 active:scale-[0.98] active:bg-accent"
+    >
+      <span>{children}</span>
+      <span aria-hidden className="-translate-x-1 text-primary opacity-0 transition-all duration-200 ease-out group-hover:translate-x-0 group-hover:opacity-100">→</span>
     </button>
   );
 }
 
-type Active = { session_id: string; user_id: string; created_at: string; free_status: string | null };
+type Active = { session_id: string; user_id: string; created_at: string; vibe: string | null };
 
-function FriendsNow({ sessionId }: { sessionId: string | null }) {
+function FriendsNow({ sessionId, vibe }: { sessionId: string | null; vibe: string | null }) {
   const me = useMe();
   const qc = useQueryClient();
   const [now, setNow] = useState(Date.now());
@@ -132,7 +123,7 @@ function FriendsNow({ sessionId }: { sessionId: string | null }) {
       if (!ids.length) return [];
       const since = new Date(Date.now() - ACTIVE_WINDOW_MIN * 60_000).toISOString();
       const { data: rows } = await supabase.from("session_status")
-        .select("session_id, user_id, created_at, free_status")
+        .select("session_id, user_id, created_at, vibe")
         .in("user_id", ids).neq("outcome", "cancelled").gte("created_at", since);
       const latest = latestPerUser((rows ?? []) as Active[]);
       if (!latest.length) return [];
@@ -159,8 +150,6 @@ function FriendsNow({ sessionId }: { sessionId: string | null }) {
     toast.success("Nudge sent 👋");
   }
 
-  const freeLabel: Record<string, string> = { yes: "Free ✅", maybe: "Maybe 🤔", no: "Busy" };
-
   return (
     <section className="animate-in fade-in">
       <h1 className="mb-1 text-3xl font-bold">Friends in the same boat</h1>
@@ -178,15 +167,17 @@ function FriendsNow({ sessionId }: { sessionId: string | null }) {
         </div>
       ) : (
         <ul className="space-y-3">
-          {data.map((f) => (
+          {[...data].sort((a, b) => Number(b.vibe === vibe) - Number(a.vibe === vibe)).map((f) => (
             <li key={f.user_id} className="rounded-3xl bg-card p-4 shadow-sm">
               <div className="flex items-center gap-3">
                 <PAvatar name={f.profile!.display_name} src={f.profile!.avatar_url} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{f.profile!.display_name}</p>
                   <p className="text-sm text-muted-foreground">opened Instagram {timeAgo(f.created_at, now)}</p>
+                  {vibe && f.vibe === vibe && (
+                    <span className="mt-1 inline-block rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary">Also wants to {REASONS.find((r) => r.value === vibe)?.label.toLowerCase()}</span>
+                  )}
                 </div>
-                {f.free_status && <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold">{freeLabel[f.free_status]}</span>}
               </div>
               {sent[f.user_id] ? (
                 <p className="mt-3 text-center text-sm text-muted-foreground">Sent “{sent[f.user_id]}” — waiting…</p>
@@ -203,6 +194,27 @@ function FriendsNow({ sessionId }: { sessionId: string | null }) {
           ))}
         </ul>
       )}
+    </section>
+  );
+}
+
+function InterestIdeas({ interests, onPick }: { interests: string[]; onPick: (i: string) => void }) {
+  const [picks] = useState(() => [...interests].sort(() => Math.random() - 0.5).slice(0, 3));
+  if (!interests.length) {
+    return (
+      <a href="/profile" className="mt-6 block rounded-2xl bg-card p-4 text-sm text-muted-foreground shadow-sm">
+        Add your interests on your profile and we'll suggest them here instead of Reels →
+      </a>
+    );
+  }
+  return (
+    <section className="mt-6">
+      <h2 className="mb-3 text-lg font-semibold">Or on your own</h2>
+      <div className="flex flex-wrap gap-2">
+        {picks.map((i) => (
+          <button key={i} onClick={() => onPick(i)} className="min-h-12 rounded-full bg-primary/10 px-5 py-2 font-medium text-primary transition active:scale-95 active:bg-primary/20">{i}</button>
+        ))}
+      </div>
     </section>
   );
 }

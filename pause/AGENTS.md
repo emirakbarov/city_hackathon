@@ -30,7 +30,7 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Project rules
-- Friends' session visibility goes through `session_status` (trigger-mirrored from `sessions`); `sessions` is owner-only so mood/reason stay private.
+- Friends' session visibility goes through `session_status` (trigger-mirrored from `sessions`); `sessions` is owner-only so mood stays private; only the check-in choice (socialise/productive/relax) is mirrored as `vibe` for matching.
 - Phone numbers are read only via the `get_phone` RPC (self or accepted friends); `profiles.phone` has no column SELECT grant.
 - Avatars are stored as small data URLs on `profiles.avatar_url` because public storage buckets are blocked in this workspace.
 - "Continue to Instagram" must open the Pause Pass shortcut, never `instagram://`, to avoid re-triggering the automation loop.

@@ -31,6 +31,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Secrets
+# Env files (never commit secrets)
 .env
 .env.*

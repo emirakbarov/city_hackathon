@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PAvatar } from "./Avatar";
-import { fileToAvatar, isValidUsername, normalizeUsername, type Profile } from "@/lib/pause";
+import { INTEREST_IDEAS, fileToAvatar, isValidUsername, normalizeUsername, type Profile } from "@/lib/pause";
 
 export function ProfileForm({ userId, initial, initialPhone, onSaved, cta }: {
   userId: string; initial?: Profile; initialPhone?: string | null | undefined; onSaved: () => void; cta: string;
@@ -14,6 +14,8 @@ export function ProfileForm({ userId, initial, initialPhone, onSaved, cta }: {
   const [name, setName] = useState(initial?.display_name ?? "");
   const [phone, setPhone] = useState(initialPhone ?? "");
   const [avatar, setAvatar] = useState<string | null>(initial?.avatar_url ?? null);
+  const [interests, setInterests] = useState<string[]>(initial?.interests ?? []);
+  const [custom, setCustom] = useState("");
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -23,7 +25,7 @@ export function ProfileForm({ userId, initial, initialPhone, onSaved, cta }: {
     if (!isValidUsername(u)) { toast.error("Username: 3–20 lowercase letters, numbers or _"); return; }
     if (!name.trim()) { toast.error("Add a display name"); return; }
     setBusy(true);
-    const row = { username: u, display_name: name.trim(), avatar_url: avatar, phone: phone.trim() || null };
+    const row = { username: u, display_name: name.trim(), avatar_url: avatar, phone: phone.trim() || null, interests };
     const { error } = initial
       ? await supabase.from("profiles").update(row).eq("id", userId)
       : await supabase.from("profiles").insert({ id: userId, ...row });
@@ -62,6 +64,28 @@ export function ProfileForm({ userId, initial, initialPhone, onSaved, cta }: {
       <div className="space-y-2">
         <Label htmlFor="phone">Phone / WhatsApp <span className="text-muted-foreground">(optional, friends only)</span></Label>
         <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+44 7700 900123" className="h-12 rounded-xl" />
+      </div>
+      <div className="space-y-2">
+        <Label>Things you'd rather do than scroll</Label>
+        <div className="flex flex-wrap gap-2">
+          {[...new Set([...INTEREST_IDEAS, ...interests])].map((i) => {
+            const on = interests.includes(i);
+            return (
+              <button key={i} type="button" onClick={() => setInterests(on ? interests.filter((x) => x !== i) : [...interests, i])}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${on ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>
+                {i}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex gap-2">
+          <Input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Add your own" className="h-11 rounded-xl" />
+          <Button type="button" variant="secondary" className="h-11 rounded-xl" onClick={() => {
+            const v = custom.trim();
+            if (v && !interests.includes(v)) setInterests([...interests, v]);
+            setCustom("");
+          }}>Add</Button>
+        </div>
       </div>
       <Button type="submit" disabled={busy} className="h-14 w-full rounded-2xl text-lg">{busy ? "Saving…" : cta}</Button>
     </form>

@@ -114,6 +114,7 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
+          interests: string[]
           phone: string | null
           username: string
         }
@@ -122,6 +123,7 @@ export type Database = {
           created_at?: string
           display_name: string
           id: string
+          interests?: string[]
           phone?: string | null
           username: string
         }
@@ -130,8 +132,36 @@ export type Database = {
           created_at?: string
           display_name?: string
           id?: string
+          interests?: string[]
           phone?: string | null
           username?: string
+        }
+        Relationships: []
+      }
+      reminders: {
+        Row: {
+          created_at: string
+          done: boolean
+          due_at: string
+          id: string
+          text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          done?: boolean
+          due_at?: string
+          id?: string
+          text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          done?: boolean
+          due_at?: string
+          id?: string
+          text?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -143,6 +173,7 @@ export type Database = {
           outcome: string
           session_id: string
           user_id: string
+          vibe: string | null
         }
         Insert: {
           app: string
@@ -151,6 +182,7 @@ export type Database = {
           outcome: string
           session_id: string
           user_id: string
+          vibe?: string | null
         }
         Update: {
           app?: string
@@ -159,6 +191,7 @@ export type Database = {
           outcome?: string
           session_id?: string
           user_id?: string
+          vibe?: string | null
         }
         Relationships: [
           {
@@ -183,6 +216,7 @@ export type Database = {
           created_at: string
           free_status: string | null
           id: string
+          limit_minutes: number | null
           mood: number | null
           outcome: string
           reason: string | null
@@ -193,6 +227,7 @@ export type Database = {
           created_at?: string
           free_status?: string | null
           id?: string
+          limit_minutes?: number | null
           mood?: number | null
           outcome?: string
           reason?: string | null
@@ -203,6 +238,7 @@ export type Database = {
           created_at?: string
           free_status?: string | null
           id?: string
+          limit_minutes?: number | null
           mood?: number | null
           outcome?: string
           reason?: string | null
@@ -224,6 +260,14 @@ export type Database = {
     }
     Functions: {
       are_friends: { Args: { a: string; b: string }; Returns: boolean }
+      friend_leaderboard: {
+        Args: never
+        Returns: {
+          opens: number
+          redirected: number
+          user_id: string
+        }[]
+      }
       get_phone: { Args: { _uid: string }; Returns: string }
     }
     Enums: {

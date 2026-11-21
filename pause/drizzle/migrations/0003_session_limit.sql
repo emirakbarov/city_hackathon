@@ -1,0 +1,1 @@
+ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS limit_minutes integer CHECK (limit_minutes BETWEEN 1 AND 45);

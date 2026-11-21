@@ -17,6 +17,7 @@ import { Route as AuthenticatedInterceptRouteImport } from './routes/_authentica
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
 import { Route as InviteUsernameRouteImport } from './routes/invite.$username'
+import { Route as ApiPublicJobsReminderRouteImport } from './routes/api/public/jobs/reminder'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -57,6 +58,11 @@ const InviteUsernameRoute = InviteUsernameRouteImport.update({
   path: '/invite/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicJobsReminderRoute = ApiPublicJobsReminderRouteImport.update({
+  id: '/api/public/jobs/reminder',
+  path: '/api/public/jobs/reminder',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/setup': typeof AuthenticatedSetupRoute
   '/invite/$username': typeof InviteUsernameRoute
+  '/api/public/jobs/reminder': typeof ApiPublicJobsReminderRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/setup': typeof AuthenticatedSetupRoute
   '/invite/$username': typeof InviteUsernameRoute
   '/': typeof AuthenticatedIndexRoute
+  '/api/public/jobs/reminder': typeof ApiPublicJobsReminderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/_authenticated/setup': typeof AuthenticatedSetupRoute
   '/invite/$username': typeof InviteUsernameRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/api/public/jobs/reminder': typeof ApiPublicJobsReminderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/setup'
     | '/invite/$username'
+    | '/api/public/jobs/reminder'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/invite/$username'
     | '/'
+    | '/api/public/jobs/reminder'
   id:
     | '__root__'
     | '/_authenticated'
@@ -116,12 +127,14 @@ export interface FileRouteTypes {
     | '/_authenticated/setup'
     | '/invite/$username'
     | '/_authenticated/'
+    | '/api/public/jobs/reminder'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   InviteUsernameRoute: typeof InviteUsernameRoute
+  ApiPublicJobsReminderRoute: typeof ApiPublicJobsReminderRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -182,6 +195,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/jobs/reminder': {
+      id: '/api/public/jobs/reminder'
+      path: '/api/public/jobs/reminder'
+      fullPath: '/api/public/jobs/reminder'
+      preLoaderRoute: typeof ApiPublicJobsReminderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -208,6 +228,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   InviteUsernameRoute: InviteUsernameRoute,
+  ApiPublicJobsReminderRoute: ApiPublicJobsReminderRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

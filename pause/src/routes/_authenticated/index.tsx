@@ -1,8 +1,9 @@
+import { toast } from "sonner";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/me";
-import { reasonLabel } from "@/lib/pause";
+import { isLogged, reasonLabel } from "@/lib/pause";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -17,24 +18,42 @@ export const Route = createFileRoute("/_authenticated/")({
 });
 
 type S = { id: string; created_at: string; outcome: string; reason: string | null };
+type R = { id: string; text: string; due_at: string };
 
 function Dashboard() {
   const me = useMe();
+  const queryClient = useQueryClient();
   const { data } = useQuery({
     queryKey: ["dashboard", me.id],
+    refetchInterval: 60_000,
     queryFn: async () => {
       const weekAgo = new Date(); weekAgo.setHours(0, 0, 0, 0); weekAgo.setDate(weekAgo.getDate() - 6);
-      const [{ data: sessions }, { count }] = await Promise.all([
+      const [{ data: sessions }, { count }, { data: reminders }] = await Promise.all([
         supabase.from("sessions").select("id, created_at, outcome, reason").eq("user_id", me.id)
           .gte("created_at", weekAgo.toISOString()).order("created_at", { ascending: false }),
         supabase.from("nudges").select("id", { count: "exact", head: true }).eq("status", "accepted")
           .gte("created_at", weekAgo.toISOString()),
+        supabase.from("reminders").select("id, text, due_at").eq("user_id", me.id).eq("done", false)
+          .order("due_at", { ascending: true }),
       ]);
-      return { sessions: (sessions ?? []) as S[], wins: count ?? 0, weekAgo };
+      return { sessions: (sessions ?? []) as S[], wins: count ?? 0, weekAgo, reminders: (reminders ?? []) as R[] };
     },
   });
 
-  const sessions = data?.sessions ?? [];
+  const sessions = (data?.sessions ?? []).filter((s) => isLogged(s.outcome));
+  const reminders = data?.reminders ?? [];
+
+  async function markDone(id: string) {
+    await supabase.from("reminders").update({ done: true }).eq("id", id);
+    queryClient.invalidateQueries({ queryKey: ["dashboard", me.id] });
+  }
+
+  async function removeSession(id: string) {
+    const { error } = await supabase.from("sessions").delete().eq("id", id);
+    if (error) { toast.error("Couldn't delete"); return; }
+    queryClient.invalidateQueries({ queryKey: ["dashboard", me.id] });
+  }
+
   const todayKey = new Date().toDateString();
   const today = sessions.filter((s) => new Date(s.created_at).toDateString() === todayKey);
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -49,6 +68,21 @@ function Dashboard() {
         <p className="text-muted-foreground">Hey {me.display_name.split(" ")[0]}</p>
         <h1 className="text-3xl font-bold">Your pauses</h1>
       </header>
+
+      {reminders.length > 0 && (
+        <section className="rounded-3xl bg-primary p-5 text-primary-foreground shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide opacity-80">Reminder</p>
+          {reminders.map((r) => (
+            <div key={r.id} className="mt-2 flex items-start gap-3">
+              <p className="min-w-0 flex-1 text-[15px] leading-snug">{r.text}</p>
+              <button onClick={() => markDone(r.id)}
+                className="shrink-0 rounded-full bg-primary-foreground/25 px-4 py-2 text-sm font-semibold active:opacity-80">
+                Done
+              </button>
+            </div>
+          ))}
+        </section>
+      )}
 
       <section className="grid grid-cols-3 gap-3">
         <Stat label="Opens today" value={today.length} />
@@ -95,7 +129,11 @@ function Dashboard() {
                   <p className="font-medium">{reasonLabel(s.reason)}</p>
                   <p className="text-sm text-muted-foreground">{new Date(s.created_at).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" })}</p>
                 </div>
-                <OutcomeBadge outcome={s.outcome} />
+                <div className="flex items-center gap-2">
+                  <OutcomeBadge outcome={s.outcome} />
+                  <button aria-label="Delete entry" onClick={() => removeSession(s.id)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted active:scale-95">×</button>
+                </div>
               </li>
             ))}
           </ul>
@@ -118,8 +156,6 @@ function OutcomeBadge({ outcome }: { outcome: string }) {
   const map: Record<string, [string, string]> = {
     redirected: ["Did something else", "bg-success/15 text-success"],
     continued: ["Scrolled", "bg-muted text-muted-foreground"],
-    pending: ["Unfinished", "bg-secondary text-secondary-foreground"],
-    cancelled: ["Cancelled", "bg-muted text-muted-foreground"],
   };
   const [label, cls] = map[outcome] ?? [outcome, "bg-muted"];
   return <span className={`rounded-full px-3 py-1 text-xs font-semibold ${cls}`}>{label}</span>;

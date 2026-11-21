@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PAvatar } from "@/components/pause/Avatar";
 import { LimitSlider } from "@/components/pause/LimitSlider";
+import { useSuggestedMinutes } from "@/lib/useSuggestedMinutes";
 
 export const Route = createFileRoute("/_authenticated/intercept")({
   validateSearch: (s: Record<string, unknown>): { app?: string } =>
@@ -36,6 +37,7 @@ function Intercept() {
   const [vibe, setVibe] = useState<string | null>(null);
   const started = useRef(false);
   const [limit, setLimit] = useState(15);
+  const suggestion = useSuggestedMinutes(me.id, step >= 1);
 
   useEffect(() => {
     if (started.current) return;
@@ -78,8 +80,8 @@ function Intercept() {
       {step >= 1 && (
         <section className="mt-8 animate-in fade-in">
           <h2 className="mb-1 text-xl font-bold">Still want to scroll?</h2>
-          <p className="mb-4 text-sm text-muted-foreground">Up to 45 minutes. Past 30 it gets hard on purpose.</p>
-          <LimitSlider onChange={setLimit} />
+          <p className="mb-4 text-sm text-muted-foreground">{suggestion ? `Suggested: ${suggestion.reason}` : "Up to 45 minutes. Past 30 it gets hard on purpose."}</p>
+          <LimitSlider onChange={setLimit} suggested={suggestion?.minutes ?? null} />
         </section>
       )}
 

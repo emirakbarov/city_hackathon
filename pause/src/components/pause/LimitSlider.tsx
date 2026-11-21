@@ -27,8 +27,11 @@ export function nextMinutes(current: number, deltaPx: number, trackWidth: number
   return Math.round(dragMinutes(current, deltaPx, trackWidth));
 }
 
-export function LimitSlider({ onChange }: { onChange: (m: number) => void }) {
-  const [raw, setRaw] = useState(15);
+export function LimitSlider({ onChange, suggested }: { onChange: (m: number) => void; suggested?: number | null }) {
+  const [raw, setRaw] = useState(suggested ?? 15);
+  const moved = useRef(false);
+  // Start at the model's suggestion until the user moves the thumb.
+  useEffect(() => { if (suggested != null && !moved.current) setRaw(suggested); }, [suggested]);
   const trackRef = useRef<HTMLDivElement>(null);
   const drag = useRef<number | null>(null);
   const m = Math.max(1, Math.min(MAX_MIN, Math.round(raw)));
@@ -43,6 +46,7 @@ export function LimitSlider({ onChange }: { onChange: (m: number) => void }) {
       if (!el || drag.current === null) return;
       const from = drag.current;
       drag.current = e.clientX;
+      moved.current = true;
       setRaw((prev) => dragMinutes(prev, e.clientX - from, el.getBoundingClientRect().width));
     };
     const up = () => { drag.current = null; };
@@ -56,8 +60,10 @@ export function LimitSlider({ onChange }: { onChange: (m: number) => void }) {
     };
   }, []);
 
-  const nudge = (delta: number) =>
+  const nudge = (delta: number) => {
+    moved.current = true;
     setRaw((prev) => Math.max(1, Math.min(MAX_MIN, Math.round(prev) + delta)));
+  };
 
   return (
     <div className="select-none">
